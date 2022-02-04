@@ -84,6 +84,8 @@ type nextConn struct {
 func (nc nextConn) Read(p []byte) (n int, err error) {
 	fmt.Println("Reading from nextConn")
 	n, err = nc.Reader.Read(p)
+	fmt.Printf("Read from nextConn.reader: %s bytes\n", n)
+	fmt.Printf("Writing to nextConn.logger: %s\n", p)
 	if err == io.EOF {
 		fmt.Println("Reading from nextConn :: EOF")
 		nc.logger.Close()
