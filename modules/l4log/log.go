@@ -52,43 +52,39 @@ func (h *Handler) Handle(cx *layer4.Connection, next layer4.Handler) error {
 	ch := make(chan bool)
 
 	go func(pr *io.PipeReader, c chan bool) {
-		fmt.Println("huh")
 		if _, err := io.Copy(os.Stdout, pr); err != nil {
-			h.logger.Error("upstream connection", zap.Error(err))
+			h.logger.Error("error logging traffic to stdout", zap.Error(err))
 		}
-		fmt.Println("huh2")
 		c <- true
-		fmt.Println("huh3")
-		return
 	}(pr, ch)
+
+	// TODO: try making sure io.TeeReader called before goroutine call
+
 
 	nextc := *cx
 	nextc.Conn = nextConn{
 		Conn:   cx,
 		Reader: io.TeeReader(cx, pw),
-		pipe:   pw,
-		wut:    pr,
+		logger: pw,
 	}
 
 	err := next.Handle(&nextc)
 	<- ch
-	fmt.Println("huh4")
 	return err
 }
 
 type nextConn struct {
 	net.Conn
 	io.Reader
-	pipe *io.PipeWriter
-	wut *io.PipeReader
+	logger *io.PipeWriter
 }
 
 func (nc nextConn) Read(p []byte) (n int, err error) {
 	fmt.Println("Reading from nextConn")
 	n, err = nc.Reader.Read(p)
 	if err == io.EOF {
-		io.ReadAll(nc.wut)
-		nc.pipe.Close()
+		fmt.Println("Reading from nextConn :: EOF")
+		nc.logger.Close()
 	}
 	return
 }
