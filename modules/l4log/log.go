@@ -12,13 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package l4echo
+package l4log
 
 import (
 	"io"
+	"os"
 
 	"github.com/caddyserver/caddy/v2"
 	"github.com/unwebio/caddy-l4/layer4"
+	"go.uber.org/zap"
 )
 
 func init() {
@@ -26,20 +28,32 @@ func init() {
 }
 
 // Handler is a simple handler that writes what it reads.
-type Handler struct{}
+type Handler struct{
+	logger *zap.Logger
+}
 
 // CaddyModule returns the Caddy module information.
 func (Handler) CaddyModule() caddy.ModuleInfo {
 	return caddy.ModuleInfo{
-		ID:  "layer4.handlers.echo",
+		ID:  "layer4.handlers.log",
 		New: func() caddy.Module { return new(Handler) },
 	}
 }
 
+func (h *Handler) Provision(ctx caddy.Context) {
+	h.logger = ctx.Logger(h)
+}
+
 // Handle handles the connection.
-func (Handler) Handle(cx *layer4.Connection, _ layer4.Handler) error {
-	_, err := io.Copy(cx, cx)
-	return err
+func (h *Handler) Handle(cx *layer4.Connection, next layer4.Handler) error {
+	go func() {
+		if _, err := io.Copy(os.Stdout, cx); err != nil {
+			h.logger.Error("upstream connection", zap.Error(err))
+		}
+		return
+	}()
+
+	return next.Handle(cx)
 }
 
 // Interface guard

@@ -1,4 +1,4 @@
-module github.com/mholt/caddy-l4
+module github.com/unwebio/caddy-l4
 
 go 1.14
 
