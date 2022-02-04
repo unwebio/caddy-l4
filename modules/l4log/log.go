@@ -18,6 +18,7 @@ import (
 	"io"
 	"os"
 	"net"
+	"fmt"
 
 	"github.com/caddyserver/caddy/v2"
 	"github.com/unwebio/caddy-l4/layer4"
@@ -73,6 +74,7 @@ type nextConn struct {
 }
 
 func (nc nextConn) Read(p []byte) (n int, err error) {
+	fmt.Println("Reading from nextConn")
 	n, err = nc.Reader.Read(p)
 	if err == io.EOF {
 		nc.pipe.Close()
