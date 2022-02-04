@@ -51,22 +51,23 @@ func (h *Handler) Handle(cx *layer4.Connection, next layer4.Handler) error {
 	pr, pw := io.Pipe()
 	ch := make(chan bool)
 
-	go func() {
+	go func(pr *io.PipeReader, c chan bool) {
 		fmt.Println("huh")
 		if _, err := io.Copy(os.Stdout, pr); err != nil {
 			h.logger.Error("upstream connection", zap.Error(err))
 		}
 		fmt.Println("huh2")
-		ch <- true
+		c <- true
 		fmt.Println("huh3")
 		return
-	}()
+	}(pr, ch)
 
 	nextc := *cx
 	nextc.Conn = nextConn{
 		Conn:   cx,
 		Reader: io.TeeReader(cx, pw),
 		pipe:   pw,
+		wut:    pr,
 	}
 
 	err := next.Handle(&nextc)
@@ -79,11 +80,16 @@ type nextConn struct {
 	net.Conn
 	io.Reader
 	pipe *io.PipeWriter
+	wut *io.PipeReader
 }
 
 func (nc nextConn) Read(p []byte) (n int, err error) {
 	fmt.Println("Reading from nextConn")
 	n, err = nc.Reader.Read(p)
+	if err == io.EOF {
+		io.ReadAll(nc.wut)
+		nc.pipe.Close()
+	}
 	return
 }
 
