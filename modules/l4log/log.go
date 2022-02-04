@@ -49,13 +49,15 @@ func (h *Handler) Provision(ctx caddy.Context) {
 // Handle handles the connection.
 func (h *Handler) Handle(cx *layer4.Connection, next layer4.Handler) error {
 	pr, pw := io.Pipe()
+	ch := make(chan bool)
 
-	go func(pr *io.PipeReader) {
+	go func(pr *io.PipeReader, c chan bool) {
 		if _, err := io.Copy(os.Stdout, pr); err != nil {
 			h.logger.Error("upstream connection", zap.Error(err))
 		}
+		c <- true
 		return
-	}(pr)
+	}(pr, ch)
 
 	nextc := *cx
 	nextc.Conn = nextConn{
@@ -64,7 +66,9 @@ func (h *Handler) Handle(cx *layer4.Connection, next layer4.Handler) error {
 		pipe:   pw,
 	}
 
-	return next.Handle(&nextc)
+	err := next.Handle(&nextc)
+	<- ch
+	return err
 }
 
 type nextConn struct {
