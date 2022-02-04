@@ -19,6 +19,7 @@ import (
 	"os"
 	"net"
 	"fmt"
+	"log"
 
 	"github.com/caddyserver/caddy/v2"
 	"github.com/unwebio/caddy-l4/layer4"
@@ -48,42 +49,36 @@ func (h *Handler) Provision(ctx caddy.Context) {
 
 // Handle handles the connection.
 func (h *Handler) Handle(cx *layer4.Connection, next layer4.Handler) error {
-	pr, pw := io.Pipe()
-	ch := make(chan bool)
-	tr := io.TeeReader(cx, pw)
-
-	go func(pr *io.PipeReader, c chan bool) {
-		fmt.Println("Starting copy from pipe to stdout")
-		if _, err := io.Copy(os.Stdout, pr); err != nil {
-			h.logger.Error("error logging traffic to stdout", zap.Error(err))
-		}
-		fmt.Println("Finished copy from pipe to stdout")
-		c <- true
-	}(pr, ch)
-
+  pr, pw := io.Pipe()
 	nextc := *cx
 	nextc.Conn = nextConn{
 		Conn:   cx,
-		Reader: tr,
 		logger: pw,
+		logged: pr,
 	}
-
-	err := next.Handle(&nextc)
-	<- ch
-	return err
+	return next.Handle(&nextc)
 }
 
 type nextConn struct {
 	net.Conn
 	io.Reader
 	logger *io.PipeWriter
+	logged *io.PipeReader
 }
 
 func (nc nextConn) Read(p []byte) (n int, err error) {
 	fmt.Println("Reading from nextConn")
-	n, err = nc.Reader.Read(p)
+	n, err = nc.Conn.Read(p)
+	if n > 0 {
+		if n, err := nc.logger.Write(p[:n]); err != nil {
+			return n, err
+		}
+	}
 	if err == io.EOF {
 		fmt.Println("Reading from nextConn :: EOF")
+		if _, err := io.Copy(os.Stdout, nc.logged); err != nil {
+			log.Fatal(err)
+		}
 		nc.logger.Close()
 	}
 	return
