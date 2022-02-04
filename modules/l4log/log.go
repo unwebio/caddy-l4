@@ -52,10 +52,13 @@ func (h *Handler) Handle(cx *layer4.Connection, next layer4.Handler) error {
 	ch := make(chan bool)
 
 	go func(pr *io.PipeReader, c chan bool) {
+		fmt.Println("huh")
 		if _, err := io.Copy(os.Stdout, pr); err != nil {
 			h.logger.Error("upstream connection", zap.Error(err))
 		}
+		fmt.Println("huh2")
 		c <- true
+		fmt.Println("huh3")
 		return
 	}(pr, ch)
 
@@ -68,6 +71,7 @@ func (h *Handler) Handle(cx *layer4.Connection, next layer4.Handler) error {
 
 	err := next.Handle(&nextc)
 	<- ch
+	fmt.Println("huh4")
 	return err
 }
 
