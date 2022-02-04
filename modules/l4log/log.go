@@ -51,16 +51,16 @@ func (h *Handler) Handle(cx *layer4.Connection, next layer4.Handler) error {
 	pr, pw := io.Pipe()
 	ch := make(chan bool)
 
-	go func(pr *io.PipeReader, c chan bool) {
+	go func() {
 		fmt.Println("huh")
 		if _, err := io.Copy(os.Stdout, pr); err != nil {
 			h.logger.Error("upstream connection", zap.Error(err))
 		}
 		fmt.Println("huh2")
-		c <- true
+		ch <- true
 		fmt.Println("huh3")
 		return
-	}(pr, ch)
+	}()
 
 	nextc := *cx
 	nextc.Conn = nextConn{
