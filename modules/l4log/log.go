@@ -50,6 +50,7 @@ func (h *Handler) Provision(ctx caddy.Context) {
 func (h *Handler) Handle(cx *layer4.Connection, next layer4.Handler) error {
 	pr, pw := io.Pipe()
 	ch := make(chan bool)
+	tr := io.TeeReader(cx, pw)
 
 	go func(pr *io.PipeReader, c chan bool) {
 		fmt.Println("Starting copy from pipe to stdout")
@@ -60,13 +61,10 @@ func (h *Handler) Handle(cx *layer4.Connection, next layer4.Handler) error {
 		c <- true
 	}(pr, ch)
 
-	// TODO: try making sure io.TeeReader called before goroutine call
-
-
 	nextc := *cx
 	nextc.Conn = nextConn{
 		Conn:   cx,
-		Reader: io.TeeReader(cx, pw),
+		Reader: tr,
 		logger: pw,
 	}
 
