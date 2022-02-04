@@ -52,9 +52,11 @@ func (h *Handler) Handle(cx *layer4.Connection, next layer4.Handler) error {
 	ch := make(chan bool)
 
 	go func(pr *io.PipeReader, c chan bool) {
+		fmt.Println("Starting copy from pipe to stdout")
 		if _, err := io.Copy(os.Stdout, pr); err != nil {
 			h.logger.Error("error logging traffic to stdout", zap.Error(err))
 		}
+		fmt.Println("Finished copy from pipe to stdout")
 		c <- true
 	}(pr, ch)
 
