@@ -48,6 +48,7 @@ func (h *Handler) Provision(ctx caddy.Context) {
 
 // Handle handles the connection.
 func (h *Handler) Handle(cx *layer4.Connection, next layer4.Handler) error {
+	fmt.Println("Running Handler: LOG")
 	pr, pw := io.Pipe()
 	ch := make(chan bool)
 	tr := io.TeeReader(cx, pw)
@@ -58,7 +59,7 @@ func (h *Handler) Handle(cx *layer4.Connection, next layer4.Handler) error {
 		if err != nil {
 			h.logger.Error("error logging traffic to stdout", zap.Error(err))
 		}
-		fmt.Printf("Wrote %s bytes to stdout\n", n)
+		fmt.Printf("Wrote %d bytes to stdout\n", n)
 		fmt.Println("Finished copy from pipe to stdout")
 		c <- true
 	}(pr, ch)
@@ -84,8 +85,8 @@ type nextConn struct {
 func (nc nextConn) Read(p []byte) (n int, err error) {
 	fmt.Println("Reading from nextConn")
 	n, err = nc.Reader.Read(p)
-	fmt.Printf("Read from nextConn.reader: %s bytes\n", n)
-	fmt.Printf("Writing to nextConn.logger: %s\n", p)
+	fmt.Printf("Read from nextConn.reader: %d bytes\n", n)
+	fmt.Printf("TeeReader should be writing to nextConn.logger: %s\n", p[:n])
 	if err == io.EOF {
 		fmt.Println("Reading from nextConn :: EOF")
 		nc.logger.Close()
