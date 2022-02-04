@@ -70,6 +70,7 @@ func (nc nextConn) Read(p []byte) (n int, err error) {
 	fmt.Println("Reading from nextConn")
 	n, err = nc.Conn.Read(p)
 	if n > 0 {
+		fmt.Printf("Writing to logger: %s\n", p[:n])
 		if n, err := nc.logger.Write(p[:n]); err != nil {
 			return n, err
 		}
