@@ -17,6 +17,7 @@ package l4log
 import (
 	"fmt"
 	"net"
+	"runtime/debug"
 
 	// "net"
 
@@ -41,10 +42,11 @@ func (Handler) CaddyModule() caddy.ModuleInfo {
 
 // Handle handles the connection.
 func (h *Handler) Handle(cx *layer4.Connection, next layer4.Handler) (err error) {
-	cx.Conn = nextConn{
+	nextc := *cx
+	nextc.Conn = nextConn{
 		Conn: cx,
 	}
-	return next.Handle(cx)
+	return next.Handle(&nextc)
 }
 
 type nextConn struct {
@@ -52,6 +54,8 @@ type nextConn struct {
 }
 
 func (nc nextConn) Read(p []byte) (n int, err error) {
+	fmt.Println("nextConn.Read")
+	debug.PrintStack()
 	n, err = nc.Conn.Read(p)
 	fmt.Printf("Read %d bytes\n", n)
 	if n > 0 {

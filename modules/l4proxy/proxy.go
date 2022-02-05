@@ -138,6 +138,7 @@ func (h *Handler) Provision(ctx caddy.Context) error {
 
 // Handle handles the downstream connection.
 func (h Handler) Handle(down *layer4.Connection, _ layer4.Handler) error {
+	fmt.Println("proxy handler running")
 	repl := down.Context.Value(layer4.ReplacerCtxKey).(*caddy.Replacer)
 
 	start := time.Now()
