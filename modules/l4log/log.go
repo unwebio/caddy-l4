@@ -17,7 +17,7 @@ package l4log
 import (
 	"io"
 	"os"
-	"net"
+	// "net"
 
 	"github.com/caddyserver/caddy/v2"
 	"github.com/unwebio/caddy-l4/layer4"
@@ -47,34 +47,11 @@ func (h *Handler) Provision(ctx caddy.Context) {
 
 // Handle handles the connection.
 func (h *Handler) Handle(cx *layer4.Connection, next layer4.Handler) (err error) {
-	pr, pw := io.Pipe()
-	mw := io.MultiWriter(cx, pw)
-	ch := make(chan bool)
-
 	go func() {
 		io.Copy(os.Stdout, cx)
-		io.Copy(os.Stdout, pr)
-		ch <- true
 	}()
 
-	nextc := *cx
-	nextc.Conn = nextConn{
-		Conn:   cx,
-		Writer: mw,
-	}
-
-	 err = next.Handle(&nextc)
-	 <- ch
-	 return
-}
-
-type nextConn struct {
-	net.Conn
-	io.Writer
-}
-
-func (nc nextConn) Write(p []byte) (int, error) {
-	return nc.Writer.Write(p)
+	return next.Handle(cx)
 }
 
 // Interface guard
