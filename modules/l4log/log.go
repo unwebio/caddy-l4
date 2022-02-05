@@ -15,13 +15,14 @@
 package l4log
 
 import (
+	"fmt"
 	"io"
-	"os"
+	"net"
+
 	// "net"
 
 	"github.com/caddyserver/caddy/v2"
 	"github.com/unwebio/caddy-l4/layer4"
-	"go.uber.org/zap"
 )
 
 func init() {
@@ -29,9 +30,7 @@ func init() {
 }
 
 // Handler is a simple handler that writes what it reads.
-type Handler struct{
-	logger *zap.Logger
-}
+type Handler struct{}
 
 // CaddyModule returns the Caddy module information.
 func (Handler) CaddyModule() caddy.ModuleInfo {
@@ -41,17 +40,23 @@ func (Handler) CaddyModule() caddy.ModuleInfo {
 	}
 }
 
-func (h *Handler) Provision(ctx caddy.Context) {
-	h.logger = ctx.Logger(h)
-}
-
 // Handle handles the connection.
 func (h *Handler) Handle(cx *layer4.Connection, next layer4.Handler) (err error) {
-	go func() {
-		io.Copy(os.Stdout, cx)
-	}()
-
 	return next.Handle(cx)
+}
+
+type nextConn struct {
+  net.Conn
+	io.Reader
+}
+
+func (nc nextConn) Read(p []byte) (n int, err error) {
+	n, err = nc.Reader.Read(p)
+	fmt.Printf("Read %d bytes\n", n)
+	if n > 0 {
+		fmt.Printf("Bytes read: %s", p[:n])
+	}
+	return
 }
 
 // Interface guard
