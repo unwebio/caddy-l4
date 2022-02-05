@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"runtime/debug"
 	"sync"
 
 	"github.com/caddyserver/caddy/v2"
@@ -81,6 +82,9 @@ func (cx *Connection) Read(p []byte) (n int, err error) {
 	if cx.bufReader != nil {
 		n, err = cx.bufReader.Read(p)
 		fmt.Printf("Read %d bytes from cx.bufReader\n", n)
+		if n > 0 {
+			debug.PrintStack()
+		}
 		if err == io.EOF {
 			cx.bufReader = nil
 			err = nil
@@ -92,6 +96,9 @@ func (cx *Connection) Read(p []byte) (n int, err error) {
 	// underlying connection
 	n, err = cx.Conn.Read(p)
 	fmt.Printf("Read %d bytes from cx.Conn\n", n)
+	if n > 0 {
+		debug.PrintStack()
+	}
 	cx.bytesRead += uint64(n)
 
 	if !cx.recording {
