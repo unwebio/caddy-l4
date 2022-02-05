@@ -17,6 +17,7 @@ package layer4
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"net"
 	"sync"
@@ -79,6 +80,7 @@ func (cx *Connection) Read(p []byte) (n int, err error) {
 	// after the buffer has been "depleted"
 	if cx.bufReader != nil {
 		n, err = cx.bufReader.Read(p)
+		fmt.Printf("Read %d bytes from cx.bufReader\n", n)
 		if err == io.EOF {
 			cx.bufReader = nil
 			err = nil
@@ -89,6 +91,7 @@ func (cx *Connection) Read(p []byte) (n int, err error) {
 	// buffer has been "depleted" so read from
 	// underlying connection
 	n, err = cx.Conn.Read(p)
+	fmt.Printf("Read %d bytes from cx.Conn\n", n)
 	cx.bytesRead += uint64(n)
 
 	if !cx.recording {
