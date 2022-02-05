@@ -16,7 +16,6 @@ package l4log
 
 import (
 	"fmt"
-	"io"
 	"net"
 
 	// "net"
@@ -51,11 +50,10 @@ func (h *Handler) Handle(cx *layer4.Connection, next layer4.Handler) (err error)
 
 type nextConn struct {
   net.Conn
-	io.Reader
 }
 
 func (nc nextConn) Read(p []byte) (n int, err error) {
-	n, err = nc.Reader.Read(p)
+	n, err = nc.Conn.Read(p)
 	fmt.Printf("Read %d bytes\n", n)
 	if n > 0 {
 		fmt.Printf("Bytes read: %s", p[:n])
