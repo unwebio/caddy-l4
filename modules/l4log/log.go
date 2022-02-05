@@ -46,13 +46,15 @@ func (h *Handler) Provision(ctx caddy.Context) {
 }
 
 // Handle handles the connection.
-func (h *Handler) Handle(cx *layer4.Connection, next layer4.Handler) error {
+func (h *Handler) Handle(cx *layer4.Connection, next layer4.Handler) (err error) {
 	pr, pw := io.Pipe()
 	mw := io.MultiWriter(cx, pw)
+	ch := make(chan bool)
 
 	go func() {
 		io.Copy(os.Stdout, cx)
 		io.Copy(os.Stdout, pr)
+		ch <- true
 	}()
 
 	nextc := *cx
@@ -61,7 +63,9 @@ func (h *Handler) Handle(cx *layer4.Connection, next layer4.Handler) error {
 		Writer: mw,
 	}
 
-	return next.Handle(&nextc)
+	 err = next.Handle(&nextc)
+	 <- ch
+	 return
 }
 
 type nextConn struct {
