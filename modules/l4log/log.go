@@ -42,7 +42,11 @@ func (Handler) CaddyModule() caddy.ModuleInfo {
 
 // Handle handles the connection.
 func (h *Handler) Handle(cx *layer4.Connection, next layer4.Handler) (err error) {
-	return next.Handle(cx)
+	nextc := *cx
+	nextc.Conn = nextConn{
+		Conn: cx,
+	}
+	return next.Handle(&nextc)
 }
 
 type nextConn struct {
