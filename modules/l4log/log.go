@@ -86,7 +86,6 @@ func (nc nextConn) Read(p []byte) (n int, err error) {
 	fmt.Println("Reading from nextConn")
 	n, err = nc.Reader.Read(p)
 	fmt.Printf("Read from nextConn.reader: %d bytes\n", n)
-	fmt.Printf("TeeReader should be writing to nextConn.logger: %s\n", p[:n])
 	if err == io.EOF {
 		fmt.Println("Reading from nextConn :: EOF")
 		nc.logger.Close()
