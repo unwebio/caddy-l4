@@ -27,9 +27,9 @@ import (
 
 	"github.com/caddyserver/caddy/v2"
 	"github.com/mastercactapus/proxyprotocol"
-	"github.com/unwebio/caddy-l4/layer4"
-	"github.com/unwebio/caddy-l4/modules/l4proxyprotocol"
-	"github.com/unwebio/caddy-l4/modules/l4tls"
+	"github.com/mholt/caddy-l4/layer4"
+	"github.com/mholt/caddy-l4/modules/l4proxyprotocol"
+	"github.com/mholt/caddy-l4/modules/l4tls"
 	"go.uber.org/zap"
 )
 
@@ -138,7 +138,6 @@ func (h *Handler) Provision(ctx caddy.Context) error {
 
 // Handle handles the downstream connection.
 func (h Handler) Handle(down *layer4.Connection, _ layer4.Handler) error {
-	fmt.Println("proxy handler running")
 	repl := down.Context.Value(layer4.ReplacerCtxKey).(*caddy.Replacer)
 
 	start := time.Now()

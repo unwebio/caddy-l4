@@ -15,14 +15,11 @@
 package l4log
 
 import (
-	"fmt"
-	"net"
-	"runtime/debug"
-
-	// "net"
+	"io"
+	"os"
 
 	"github.com/caddyserver/caddy/v2"
-	"github.com/unwebio/caddy-l4/layer4"
+	"github.com/mholt/caddy-l4/layer4"
 )
 
 func init() {
@@ -41,27 +38,25 @@ func (Handler) CaddyModule() caddy.ModuleInfo {
 }
 
 // Handle handles the connection.
-func (h *Handler) Handle(cx *layer4.Connection, next layer4.Handler) (err error) {
-	nextc := *cx
-	nextc.Conn = nextConn{
-		Conn: cx,
-	}
-	return next.Handle(&nextc)
+func (Handler) Handle(cx *layer4.Connection, next layer4.Handler) error {
+	tr := io.TeeReader(cx, os.Stdout)
+	mr := io.MultiWriter(cx, os.Stdout)
+	nextcx := nextConn{cx, tr, mr}
+	return next.Handle(cx.Wrap(&nextcx))
 }
 
 type nextConn struct {
-  net.Conn
+	*layer4.Connection
+	io.Reader
+	io.Writer
 }
 
 func (nc nextConn) Read(p []byte) (n int, err error) {
-	fmt.Println("nextConn.Read")
-	debug.PrintStack()
-	n, err = nc.Conn.Read(p)
-	fmt.Printf("Read %d bytes\n", n)
-	if n > 0 {
-		fmt.Printf("Bytes read: %s", p[:n])
-	}
-	return
+	return nc.Reader.Read(p)
+}
+
+func (nc nextConn) Write(p []byte) (n int, err error) {
+	return nc.Writer.Write(p)
 }
 
 // Interface guard
