@@ -1,0 +1,33 @@
+WARC/1.1
+WARC-Record-ID: <urn:uuid:{{ .Info.Uuid.String }}>
+WARC-Type: warcinfo
+WARC-Date: {{ .Info.Timestamp }}
+Content-Type: application/warc-fields
+Content-Length: 36
+
+robots: none
+software: Caddy Server
+
+WARC/1.1
+WARC-Record-ID: <urn:uuid:{{ .Request.Uuid.String }}>
+WARC-Type: request
+WARC-Date: {{ .Request.Timestamp }}
+WARC-Target-URI: {{ .TargetUri }}
+WARC-IP-Address: {{ .PublicIp }}
+WARC-Concurrent-To: <urn:uuid:{{ .Response.Uuid.String }}>
+Content-Type: application/http; msgtype=request
+Content-Length: {{ .Request.ContentLength }}
+
+{{ .Request.Content }}
+
+WARC/1.1
+WARC-Record-ID: <urn:uuid:{{ .Response.Uuid.String }}>
+WARC-Type: response
+WARC-Date: {{ .Response.Timestamp }}
+WARC-Target-URI: {{ .TargetUri }}
+WARC-IP-Address: {{ .PublicIp }}
+WARC-Concurrent-To: <urn:uuid:{{ .Request.Uuid.String }}>
+Content-Type: application/http; msgtype=response
+Content-Length: {{ .Response.ContentLength }}
+
+{{ .Response.Content }}
