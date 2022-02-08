@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/http"
 	"time"
 
 	"github.com/caddyserver/caddy/v2"
@@ -66,6 +67,15 @@ func (h *Handler) Provision(ctx caddy.Context) error {
 
 // Handle handles the connection.
 func (h Handler) Handle(cx *layer4.Connection, next layer4.Handler) error {
+	req, ok := cx.GetVar("http_request").(*http.Request)
+	if !ok {
+		h.log.Warn("l4log does not handle non-http traffic")
+		return next.Handle(cx)
+	}
+	targetUri := req.URL
+	targetUri.Scheme = "http"
+	targetUri.Host = req.Host
+
 	reqR, reqW := io.Pipe()
 	resR, resW := io.Pipe()
 
@@ -98,7 +108,7 @@ func (h Handler) Handle(cx *layer4.Connection, next layer4.Handler) error {
 		defer warcW.Close()
 		req := Message{reqTime, reqContent}
 		res := Message{resTime, resContent}
-		warc := CreateWarc(req, res)
+		warc := CreateWarc(req, res, targetUri.String(), "t.0.d.0")
 
 		go func() {
 			warcContent, err := io.ReadAll(warcR)

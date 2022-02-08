@@ -37,11 +37,11 @@ type Warc struct {
 	PublicIp  string
 }
 
-func CreateWarc(req Message, res Message) Warc {
+func CreateWarc(req Message, res Message, uri string, ip string) Warc {
 	info := warcInfoRecord{uuid.New(), req.Timestamp}
 	request := warcMessageRecord{uuid.New(), req.Timestamp, string(req.Content)}
 	response := warcMessageRecord{uuid.New(), res.Timestamp, string(res.Content)}
-	return Warc{info, request, response, "a", "b"}
+	return Warc{info, request, response, uri, ip}
 }
 
 //go:embed warc.tmpl
