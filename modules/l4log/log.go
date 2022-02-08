@@ -76,16 +76,29 @@ func (h Handler) Handle(cx *layer4.Connection, next layer4.Handler) error {
 	var resTime string
 
 	go func() {
-		reqContent, err := io.ReadAll(reqR)
-		if err != nil {
-			h.log.Warn("Failed to log request traffic", zap.Error(err))
-		}
-		resContent, err := io.ReadAll(resR)
-		if err != nil {
-			h.log.Error("Failed to log response traffic", zap.Error(err))
+		// need to start the request and response PipeReaders ASAP
+		// so their corresponding PipeWriters can be written to without
+		// blocking
+		var reqContent []byte
+		go func() {
+			c, err := io.ReadAll(reqR)
+			if err != nil {
+				h.log.Warn("Failed to log request traffic", zap.Error(err))
+			}
+			reqContent = c
+		}()
+
+		resContent, resErr := io.ReadAll(resR)
+		if resErr != nil {
+			h.log.Error("Failed to log response traffic", zap.Error(resErr))
 			return
 		}
+
 		warcR, warcW := io.Pipe()
+		defer warcW.Close()
+		req := Message{reqTime, reqContent}
+		res := Message{resTime, resContent}
+		warc := CreateWarc(req, res)
 
 		go func() {
 			warcContent, err := io.ReadAll(warcR)
@@ -94,16 +107,12 @@ func (h Handler) Handle(cx *layer4.Connection, next layer4.Handler) error {
 				return
 			}
 			fmt.Println("Storing WARC content")
-			err = h.storage.Store("warc", warcContent)
+			err = h.storage.Store(warc.Info.Uuid.String()+".warc", warcContent)
 			if err != nil {
 				h.log.Error("Failed to store WARC", zap.Error(err))
 			}
 		}()
 
-		defer warcW.Close()
-		req := Message{reqTime, reqContent}
-		res := Message{resTime, resContent}
-		warc := CreateWarc(req, res)
 		warc.Render(warcW)
 	}()
 
